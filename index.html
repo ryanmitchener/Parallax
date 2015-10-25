@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .row {
+            position: relative;
+            text-align: center;
+            background: #333333;
+            font-size: 60px;
+            font-family: helvetica;
+        }
+        .content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+            color: white;
+            margin: auto;
+            padding: 10px 20px;
+            border: 5px solid #ccc;
+            background-color: rgba(6, 20, 46, 0.5);
+        }
+    </style>
+    <link rel='stylesheet' href='parallax.css' />
+</head>
+<body>
+    <div id='wrapper'>
+        <div class='row'>
+            <img class='img' src="img7.png" data-parallax data-pattern />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img1.jpg" data-parallax />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img2.jpg" data-parallax />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img3.jpg" data-parallax />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img4.jpg" data-parallax />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img5.jpg" data-parallax />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img6.jpg" data-parallax />
+            <div class='content'>TESTING 123</div>
+        </div>
+        <div class='row'>
+            <img class='img' src="img8.png" data-parallax data-pattern />
+            <div class='content'>TESTING 123</div>
+        </div>
+    </div>
+    <script src='parallax.js'></script>
+    <script src='SmoothScroll.js'></script>
+    <script>
+        var p = new Parallax('.img', {dimens: "full"});
+    </script>
+</body>
+</html>
