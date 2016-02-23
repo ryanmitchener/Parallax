@@ -40,8 +40,10 @@ var Parallax = function(selector, options) {
     this.options.animateOnScroll = (this.options.animateOnScroll !== undefined) ? this.options.animateOnScroll : false;
 
     // Set up variables
+    this.hasVideo = false;
+    this.videoToggle = false; // Flag for request animation frame to update the frame 30fps
     this.useFallback = (navigator.userAgent.match(/Android|iPad|iPhone|iPod/i)) ? true : false;
-    this.images = document.querySelectorAll(selector);
+    this.items = document.querySelectorAll(selector);
     this.canvases = [];
     this.ctx = [];
     this.currentSlide = 1; // Used in animateOnScroll to know which parallax item is currently snapped to the top
@@ -53,11 +55,17 @@ var Parallax = function(selector, options) {
     this.onResize();
 
     // Set load listeners for images
-    for (var i=0, l=this.images.length; i < l; i++) {
-        if (this.images[i].complete === true) {
+    for (var i=0, l=this.items.length; i < l; i++) {
+        if (this.items[i].tagName === "VIDEO") {
+            if (this.hasVideo === false && this.useFallback === false) {
+                this.hasVideo = true;
+                this.items[i].addEventListener("play", this.playVideoFrame.bind(this));
+            }
+            this.items[i].addEventListener("loadedmetadata", this.onVideoLoad.bind(this, i));
+        } else if (this.items[i].complete === true) {
             this.onImageLoad(i);
         } else {
-            this.images[i].addEventListener('load', this.onImageLoad.bind(this, i));
+            this.items[i].addEventListener('load', this.onImageLoad.bind(this, i));
         }
     }
 
@@ -85,17 +93,17 @@ window.requestAnimFrame = (function() {
 
 // Layout appropriate elements
 Parallax.prototype.layout = function() {
-    for (var i=0, l=this.images.length; i < l; i++) {
+    for (var i=0, l=this.items.length; i < l; i++) {
         if (this.useFallback === false) {
             var canvas = document.createElement("canvas");
             canvas.className = "parallax-item";
             this.canvases.push(canvas);
-            this.images[i].parentElement.insertBefore(canvas, this.images[i]);
+            this.items[i].parentElement.insertBefore(canvas, this.items[i]);
             this.ctx.push(canvas.getContext('2d'));
         } else {
             // Set the container's position to relative if it is static
-            if (getComputedStyle(this.images[i].parentElement).position === "static") {
-                this.images[i].parentElement.style.position = "relative";
+            if (getComputedStyle(this.items[i].parentElement).position === "static") {
+                this.items[i].parentElement.style.position = "relative";
             }
 
             // Create fallback container
@@ -105,12 +113,12 @@ Parallax.prototype.layout = function() {
             // Create fallback image
             var imgCont = document.createElement("div");
             imgCont.className = "parallax-fallback-img";
-            imgCont.className += (this.images[i].getAttribute('data-pattern') !== null) ? " parallax-pattern" : "";
-            imgCont.style.backgroundImage = "url(" + this.images[i].src + ")";
+            imgCont.className += (this.items[i].getAttribute('data-pattern') !== null) ? " parallax-pattern" : "";
+            imgCont.style.backgroundImage = "url(" + this.items[i].src + ")";
 
             // Attach fallback
             cont.appendChild(imgCont);
-            this.images[i].parentElement.insertBefore(cont, this.images[i]);
+            this.items[i].parentElement.insertBefore(cont, this.items[i]);
         }
     }
 }
@@ -119,21 +127,41 @@ Parallax.prototype.layout = function() {
 // Event listener for image load
 Parallax.prototype.onImageLoad = function(index) {
     if (this.useFallback === false) {
-        if (this.images[index].getAttribute('data-pattern') !== null) {
-            var pattern = this.ctx[index].createPattern(this.images[index], "repeat");
+        if (this.items[index].getAttribute('data-pattern') !== null) {
+            var pattern = this.ctx[index].createPattern(this.items[index], "repeat");
             this.ctx[index].fillStyle = pattern;
         }
         this.canvases[index].className += " parallax-visible";
         this.updateCanvases();
     } else {
-        this.images[index].parentElement.querySelector('.parallax-item').className += " parallax-visible";
+        this.items[index].parentElement.querySelector('.parallax-item').className += " parallax-visible";
     }
+}
+
+
+// Event listener for video load
+Parallax.prototype.onVideoLoad = function(i) {
+    if (this.useFallback === false) {
+        this.canvases[i].className += " parallax-visible";
+        this.updateCanvases();
+    } else {
+        this.items[i].parentElement.querySelector('.parallax-item').className += " parallax-visible";   
+    }
+}
+
+// Play a video
+Parallax.prototype.playVideoFrame = function() {
+    if (this.videoToggle) {
+        this.updateCanvases();
+    }
+    this.videoToggle = !this.videoToggle;
+    requestAnimFrame(this.playVideoFrame.bind(this));
 }
 
 
 // Resize canvases on window resize
 Parallax.prototype.onResize = function(ev) {
-    for (var i=0, l=this.images.length; i < l; i++) {
+    for (var i=0, l=this.items.length; i < l; i++) {
         if (this.useFallback === false) {
             // This is to fix a chrome bug where on vertical window resize, vh units do not recalculate
             if (this.options.dimens === "full") {
@@ -145,13 +173,13 @@ Parallax.prototype.onResize = function(ev) {
             this.canvases[i].height = this.canvases[i].parentElement.offsetHeight;
 
             // Reset the pattern based on the new canvas size
-            if (this.images[i].getAttribute('data-pattern') !== null) {
-                var pattern = this.ctx[i].createPattern(this.images[i], "repeat");
+            if (this.items[i].getAttribute('data-pattern') !== null) {
+                var pattern = this.ctx[i].createPattern(this.items[i], "repeat");
                 this.ctx[i].fillStyle = pattern;
             }
         } else {
             if (this.options.dimens === "full") {
-                this.images[i].parentElement.style.height = window.innerHeight + "px";
+                this.items[i].parentElement.style.height = window.innerHeight + "px";
             }
         }
     }
@@ -181,7 +209,11 @@ Parallax.prototype.updateCanvases = function() {
 
         // Set up misc variables
         var parallaxLevel = (Array.isArray(this.options.parallaxLevel)) ? this.options.parallaxLevel[i] : this.options.parallaxLevel;
-        var multiplier = this.images[i].width / this.images[i].height;
+        if (this.items[i].tagName === "VIDEO") {
+            var multiplier = this.items[i].videoWidth / this.items[i].videoHeight;
+        } else {
+            var multiplier = this.items[i].width / this.items[i].height;
+        }
 
         // Render canvas if image is a pattern
         if (this.ctx[i].fillStyle instanceof CanvasPattern) {
@@ -228,7 +260,7 @@ Parallax.prototype.updateCanvases = function() {
 
         // Draw the canvas
         this.ctx[i].clearRect(0, 0, this.canvases[i].width, this.canvases[i].height);
-        this.ctx[i].drawImage(this.images[i], posX, posY, desiredHeight * multiplier, desiredHeight);
+        this.ctx[i].drawImage(this.items[i], posX, posY, desiredHeight * multiplier, desiredHeight);
     }
 }
 
@@ -273,10 +305,10 @@ Parallax.prototype.handleSlideEvents = function(ev) {
             this.slideTo(this.currentSlide);
         }
     } else if (direction === "down" && this.animating === false) {
-        if (this.currentSlide == this.images.length && pageYOffset <= document.body.scrollHeight - innerHeight) {
+        if (this.currentSlide == this.items.length && pageYOffset <= document.body.scrollHeight - innerHeight) {
             this.slideTo(document.body.scrollHeight - innerHeight, true);
         } else {
-            this.currentSlide = (this.currentSlide + 1 > this.images.length) ? this.images.length : this.currentSlide + 1;
+            this.currentSlide = (this.currentSlide + 1 > this.items.length) ? this.items.length : this.currentSlide + 1;
             this.slideTo(this.currentSlide);
         }        
     }
@@ -286,8 +318,8 @@ Parallax.prototype.handleSlideEvents = function(ev) {
 // Finds the closest slide to the current scroll position
 Parallax.prototype.findNearestSlide = function() {
     var closest = {distance: null, index: null};
-    for (var i=0, l=this.images.length; i < l; i++) {
-        var distance = Math.abs(this.images[i].parentElement.offsetTop - pageYOffset);
+    for (var i=0, l=this.items.length; i < l; i++) {
+        var distance = Math.abs(this.items[i].parentElement.offsetTop - pageYOffset);
         if (distance === 0) {
             return i + 1;
         } else if (distance < closest.distance || closest.distance === null) {
@@ -305,7 +337,7 @@ Parallax.prototype.slideTo = function(num, isPixelAmount) {
     this.animating = true;
     this.iteration = 0;
     this.startValue = pageYOffset;
-    this.difference = (isPixelAmount === true) ? num - pageYOffset : this.images[num - 1].parentElement.offsetTop - pageYOffset;
+    this.difference = (isPixelAmount === true) ? num - pageYOffset : this.items[num - 1].parentElement.offsetTop - pageYOffset;
     this.frames = (navigator.userAgent.indexOf("Chrome") !== -1) ? 60 : 40;
     requestAnimFrame(this.animateScroll.bind(this));
 }
