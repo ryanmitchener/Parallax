@@ -59,9 +59,12 @@ var Parallax = function(selector, options) {
         if (this.items[i].tagName === "VIDEO") {
             if (this.hasVideo === false && this.useFallback === false) {
                 this.hasVideo = true;
-                this.items[i].addEventListener("play", this.playVideoFrame.bind(this));
             }
-            this.items[i].addEventListener("loadedmetadata", this.onVideoLoad.bind(this, i));
+            if (this.items[i].readyState >= 2) {
+                this.onVideoLoad.call(this, i);
+            } else {
+                this.items[i].addEventListener("loadedmetadata", this.onVideoLoad.bind(this, i));
+            }
         } else if (this.items[i].complete === true) {
             this.onImageLoad(i);
         } else {
@@ -143,7 +146,8 @@ Parallax.prototype.onImageLoad = function(index) {
 Parallax.prototype.onVideoLoad = function(i) {
     if (this.useFallback === false) {
         this.canvases[i].className += " parallax-visible";
-        this.updateCanvases();
+        this.items[i].play();
+        this.playVideoFrame.call(this);
     } else {
         this.items[i].parentElement.querySelector('.parallax-item').className += " parallax-visible";   
     }
